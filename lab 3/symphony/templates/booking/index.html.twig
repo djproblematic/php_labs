@@ -1,0 +1,45 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Booking index{% endblock %}
+
+{% block body %}
+    <h1>Booking index</h1>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>StartDate</th>
+                <th>EndDate</th>
+                
+                <th>Name</th>
+
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for booking in bookings %}
+            <tr>
+                <td>{{ booking.id }}</td>
+                
+                <td>{{ booking.startDate ? booking.startDate|date('Y-m-d') : '' }}</td>
+                <td>{{ booking.endDate ? booking.endDate|date('Y-m-d') : '' }}</td>
+                
+                <td>{{ booking.client.name }}</td>
+
+
+                <td>
+                    <a href="{{ path('app_booking_show', {'id': booking.id}) }}">Show</a>
+                    <a href="{{ path('app_booking_edit', {'id': booking.id}) }}">Edit</a>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="4">No Records found</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="{{ path('app_booking_new') }}">Create New</a>
+{% endblock %}

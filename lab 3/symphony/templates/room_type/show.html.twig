@@ -1,0 +1,25 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}RoomType Details{% endblock %}
+
+{% block body %}
+    <h1>RoomType</h1>
+
+    <table>
+        <tr>
+            <th>ID</th>
+            <td>{{ room_type.id }}</td>
+        </tr>
+        <tr>
+            <th>Name</th>
+            <td>{{ room_type.name }}</td>
+        </tr>
+        <tr>
+            <th>Description</th>
+            <td>{{ room_type.description }}</td>
+        </tr>
+    </table>
+
+    <a href="{{ path('app_room_type_index') }}">back to list</a>
+    <a href="{{ path('app_room_type_edit', {'id': room_type.id}) }}">edit</a>
+{% endblock %}
