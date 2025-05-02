@@ -1,0 +1,77 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Client index{% endblock %}
+
+{% block stylesheets %}
+    <style>
+        .filter-form {
+            margin: 20px 0;
+        }
+
+        .filter-form input {
+            padding: 6px;
+            margin-right: 10px;
+        }
+
+        .filter-form button {
+            padding: 6px 12px;
+            background-color: #2d6cdf;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+
+        .filter-form button:hover {
+            background-color: #1c4fb3;
+        }
+
+        .table {
+            margin-top: 15px;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+    <h1>Client index</h1>
+
+    <form method="get" class="filter-form">
+        <input type="text" name="name" placeholder="Name" value="{{ app.request.get('name') }}">
+        <input type="text" name="email" placeholder="Email" value="{{ app.request.get('email') }}">
+        <input type="text" name="phone" placeholder="Phone" value="{{ app.request.get('phone') }}">
+        <button type="submit">Filter</button>
+    </form>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Full Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for client in clients %}
+            <tr>
+                <td>{{ client.id }}</td>
+                <td>{{ client.name }}</td>
+                <td>{{ client.email }}</td>
+                <td>{{ client.phone }}</td>
+                <td>
+                    <a href="{{ path('app_client_show', {'id': client.id}) }}">Show</a>
+                    <a href="{{ path('app_client_edit', {'id': client.id}) }}">Edit</a>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="5">No Records found</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    {{ knp_pagination_render(clients) }}
+
+    <a href="{{ path('app_client_new') }}">Create New</a>
+{% endblock %}
