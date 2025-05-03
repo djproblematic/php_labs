@@ -1,0 +1,82 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Edit Room{% endblock %}
+
+{% block stylesheets %}
+    <style>
+        .form-container {
+            max-width: 500px;
+            margin-top: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 8px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 8px 16px;
+            font-size: 16px;
+            background-color: #2d6cdf;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #1c4fb3;
+        }
+
+        .link {
+            display: inline-block;
+            margin-top: 10px;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+    <h1>Edit Room</h1>
+
+    <div class="form-container">
+        {{ form_start(form) }}
+            <div class="form-group">
+                {{ form_label(form.number) }}
+                {{ form_widget(form.number) }}
+            </div>
+            <div class="form-group">
+                {{ form_label(form.capacity) }}
+                {{ form_widget(form.capacity) }}
+            </div>
+            <div class="form-group">
+                {{ form_label(form.price) }}
+                {{ form_widget(form.price) }}
+            </div>
+            <div class="form-group">
+                {{ form_label(form.roomType) }}
+                {{ form_widget(form.roomType) }}
+            </div>
+            <div class="form-group">
+                {{ form_widget(form._token) }}
+                <button type="submit">Update</button>
+            </div>
+        {{ form_end(form, {'render_rest': false}) }}
+    </div>
+
+    <a class="link" href="{{ path('app_room_index') }}">back to list</a>
+
+    {{ include('room/_delete_form.html.twig') }}
+{% endblock %}

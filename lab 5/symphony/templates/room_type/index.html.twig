@@ -1,0 +1,48 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Room Types{% endblock %}
+
+{% block body %}
+    <h1>Room Types</h1>
+
+    <form method="get" style="display: flex; gap: 10px; margin-bottom: 20px;">
+        <input type="text" name="id" value="{{ app.request.get('id') }}" placeholder="ID">
+        <input type="text" name="name" value="{{ app.request.get('name') }}" placeholder="Name">
+        <input type="text" name="description" value="{{ app.request.get('description') }}" placeholder="Description">
+        <button type="submit">Filter</button>
+    </form>
+
+    <a href="{{ path('app_room_type_new') }}">Create new</a>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for room_type in room_types %}
+            <tr>
+                <td>{{ room_type.id }}</td>
+                <td>{{ room_type.name }}</td>
+                <td>{{ room_type.description }}</td>
+                <td>
+                    <a href="{{ path('app_room_type_show', {'id': room_type.id}) }}">Show</a>
+                    <a href="{{ path('app_room_type_edit', {'id': room_type.id}) }}">Edit</a>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="4">No room types found</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <div style="margin-top: 15px;">
+        {{ knp_pagination_render(room_types) }}
+    </div>
+{% endblock %}

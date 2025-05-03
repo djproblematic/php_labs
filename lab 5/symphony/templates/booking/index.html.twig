@@ -1,0 +1,68 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Booking index{% endblock %}
+
+{% block body %}
+    <h1>Booking index</h1>
+
+    <form method="get" action="{{ path('app_booking_index') }}">
+        <label>Room ID:
+            <input type="number" name="room" value="{{ app.request.get('room') }}">
+        </label>
+        <label>Client ID:
+            <input type="number" name="client" value="{{ app.request.get('client') }}">
+        </label>
+        <label>Start Date:
+            <input type="date" name="startDate" value="{{ app.request.get('startDate') }}">
+        </label>
+        <label>End Date:
+            <input type="date" name="endDate" value="{{ app.request.get('endDate') }}">
+        </label>
+        <label>На сторінці:
+            <select name="itemsPerPage">
+                <option value="5" {% if app.request.get('itemsPerPage') == '5' %}selected{% endif %}>5</option>
+                <option value="10" {% if app.request.get('itemsPerPage') == '10' %}selected{% endif %}>10</option>
+                <option value="20" {% if app.request.get('itemsPerPage') == '20' %}selected{% endif %}>20</option>
+            </select>
+        </label>
+        <button type="submit">🔍 Пошук</button>
+    </form>
+
+    <br>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>StartDate</th>
+                <th>EndDate</th>
+                <th>Name</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for booking in bookings %}
+            <tr>
+                <td>{{ booking.id }}</td>
+                <td>{{ booking.startDate ? booking.startDate|date('Y-m-d') : '' }}</td>
+                <td>{{ booking.endDate ? booking.endDate|date('Y-m-d') : '' }}</td>
+                <td>{{ booking.client.name }}</td>
+                <td>
+                    <a href="{{ path('app_booking_show', {'id': booking.id}) }}">Show</a>
+                    <a href="{{ path('app_booking_edit', {'id': booking.id}) }}">Edit</a>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="5">No Records found</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="{{ path('app_booking_new') }}">Create New</a>
+
+    <br><br>
+    {{ knp_pagination_render(bookings) }}
+
+{% endblock %}

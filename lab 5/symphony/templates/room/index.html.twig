@@ -1,0 +1,49 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Room index{% endblock %}
+
+{% block body %}
+    <h1>Room index</h1>
+
+    <form method="get" class="mb-3" style="display: flex; gap: 10px;">
+        <input type="text" name="id" value="{{ app.request.get('id') }}" placeholder="ID" />
+        <input type="text" name="number" value="{{ app.request.get('number') }}" placeholder="Number" />
+        <input type="text" name="price" value="{{ app.request.get('price') }}" placeholder="Price" />
+        <input type="number" name="itemsPerPage" min="1" value="{{ app.request.get('itemsPerPage', 10) }}" placeholder="Items per page" />
+        <button type="submit">Filter</button>
+    </form>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Number</th>
+                <th>Price</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for room in rooms %}
+            <tr>
+                <td>{{ room.id }}</td>
+                <td>{{ room.number }}</td>
+                <td>{{ room.price }}</td>
+                <td>
+                    <a href="{{ path('app_room_show', {'id': room.id}) }}">Show</a>
+                    <a href="{{ path('app_room_edit', {'id': room.id}) }}">Edit</a>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="4">No records found</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="{{ path('app_room_new') }}">Create new</a>
+
+    <div style="margin-top: 15px;">
+        {{ knp_pagination_render(rooms) }}
+    </div>
+{% endblock %}
