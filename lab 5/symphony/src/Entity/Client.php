@@ -97,7 +97,6 @@ class Client
     public function removeBooking(Booking $booking): static
     {
         if ($this->bookings->removeElement($booking)) {
-            // set the owning side to null (unless already changed)
             if ($booking->getClient() === $this) {
                 $booking->setClient(null);
             }

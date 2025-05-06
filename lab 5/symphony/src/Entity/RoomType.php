@@ -7,6 +7,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;  
 
 #[ORM\Entity(repositoryClass: RoomTypeRepository::class)]
 class RoomType
@@ -17,20 +18,22 @@ class RoomType
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['room:read'])]  
     private ?string $name = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['room:read'])]  
     private ?string $description = null;
 
     /**
      * @var Collection<int, Room>
      */
     #[ORM\OneToMany(targetEntity: Room::class, mappedBy: 'roomType')]
-    private Collection $capacity;
+    private Collection $rooms;
 
     public function __construct()
     {
-        $this->capacity = new ArrayCollection();
+        $this->rooms = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -65,27 +68,26 @@ class RoomType
     /**
      * @return Collection<int, Room>
      */
-    public function getCapacity(): Collection
+    public function getRooms(): Collection
     {
-        return $this->capacity;
+        return $this->rooms;
     }
 
-    public function addCapacity(Room $capacity): static
+    public function addRoom(Room $room): static
     {
-        if (!$this->capacity->contains($capacity)) {
-            $this->capacity->add($capacity);
-            $capacity->setRoomType($this);
+        if (!$this->rooms->contains($room)) {
+            $this->rooms->add($room);
+            $room->setRoomType($this);
         }
 
         return $this;
     }
 
-    public function removeCapacity(Room $capacity): static
+    public function removeRoom(Room $room): static
     {
-        if ($this->capacity->removeElement($capacity)) {
-            // set the owning side to null (unless already changed)
-            if ($capacity->getRoomType() === $this) {
-                $capacity->setRoomType(null);
+        if ($this->rooms->removeElement($room)) {
+            if ($room->getRoomType() === $this) {
+                $room->setRoomType(null);
             }
         }
 

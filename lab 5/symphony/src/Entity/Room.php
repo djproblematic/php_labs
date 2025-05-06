@@ -3,10 +3,9 @@
 namespace App\Entity;
 
 use App\Repository\RoomRepository;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups; 
 
 #[ORM\Entity(repositoryClass: RoomRepository::class)]
 class Room
@@ -17,28 +16,21 @@ class Room
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['room:read', 'room:write'])]  
     private ?string $number = null;
 
-    #[ORM\ManyToOne(inversedBy: 'capacity')]
+    #[ORM\ManyToOne(targetEntity: RoomType::class, inversedBy: 'rooms')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['room:read', 'room:write'])]  
     private ?RoomType $roomType = null;
 
     #[ORM\Column(type: Types::INTEGER)]
-    private ?int $capacity = null; // ✅ Добавил поле capacity
+    #[Groups(['room:read', 'room:write'])] 
+    private ?int $capacity = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 8, scale: 2)]
+    #[Groups(['room:read', 'room:write'])]  
     private ?string $price = null;
-
-    /**
-     * @var Collection<int, Booking>z
-     */
-    #[ORM\OneToMany(targetEntity: Booking::class, mappedBy: 'room')]
-    private Collection $bookings;
-
-    public function __construct()
-    {
-        $this->bookings = new ArrayCollection();
-    }
 
     public function getId(): ?int
     {
@@ -50,10 +42,9 @@ class Room
         return $this->number;
     }
 
-    public function setNumber(string $number): static
+    public function setNumber(string $number): self
     {
         $this->number = $number;
-
         return $this;
     }
 
@@ -62,10 +53,9 @@ class Room
         return $this->roomType;
     }
 
-    public function setRoomType(?RoomType $roomType): static
+    public function setRoomType(?RoomType $roomType): self
     {
         $this->roomType = $roomType;
-
         return $this;
     }
 
@@ -74,10 +64,9 @@ class Room
         return $this->capacity;
     }
 
-    public function setCapacity(int $capacity): static
+    public function setCapacity(int $capacity): self
     {
         $this->capacity = $capacity;
-
         return $this;
     }
 
@@ -86,39 +75,9 @@ class Room
         return $this->price;
     }
 
-    public function setPrice(string $price): static
+    public function setPrice(string $price): self
     {
         $this->price = $price;
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, Booking>
-     */
-    public function getBookings(): Collection
-    {
-        return $this->bookings;
-    }
-
-    public function addBooking(Booking $booking): static
-    {
-        if (!$this->bookings->contains($booking)) {
-            $this->bookings->add($booking);
-            $booking->setRoom($this);
-        }
-
-        return $this;
-    }
-
-    public function removeBooking(Booking $booking): static
-    {
-        if ($this->bookings->removeElement($booking)) {
-            if ($booking->getRoom() === $this) {
-                $booking->setRoom(null);
-            }
-        }
-
         return $this;
     }
 }

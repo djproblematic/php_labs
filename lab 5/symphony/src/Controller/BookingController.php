@@ -3,111 +3,122 @@
 namespace App\Controller;
 
 use App\Entity\Booking;
-use App\Form\BookingType;
 use App\Repository\BookingRepository;
+use App\Repository\ClientRepository;
+use App\Repository\RoomRepository;
 use Doctrine\ORM\EntityManagerInterface;
-use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Routing\Annotation\Route;
 
-#[Route('/booking')]
-final class BookingController extends AbstractController
+#[Route('/api/bookings')]
+class BookingController extends AbstractController
 {
-    #[Route(name: 'app_booking_index', methods: ['GET'])]
-    public function index(
+    #[Route('', name: 'api_booking_create', methods: ['POST'])]
+    public function create(
         Request $request,
-        BookingRepository $bookingRepository,
-        PaginatorInterface $paginator
-    ): Response {
-        $queryBuilder = $bookingRepository->createQueryBuilder('b');
-
-        if ($request->query->get('room')) {
-            $queryBuilder->andWhere('b.room = :room')
-                         ->setParameter('room', $request->query->get('room'));
+        EntityManagerInterface $em,
+        ClientRepository $clientRepo,
+        RoomRepository $roomRepo
+    ): JsonResponse {
+        $data = json_decode($request->getContent(), true);
+        if (!$data || !isset($data['client_id'], $data['room_id'], $data['startDate'], $data['endDate'])) {
+            return new JsonResponse(['error' => 'Missing data'], 400);
         }
 
-        if ($request->query->get('client')) {
-            $queryBuilder->andWhere('b.client = :client')
-                         ->setParameter('client', $request->query->get('client'));
+        $client = $clientRepo->find($data['client_id']);
+        $room = $roomRepo->find($data['room_id']);
+
+        if (!$client || !$room) {
+            return new JsonResponse(['error' => 'Invalid client or room'], 400);
         }
 
-        if ($request->query->get('startDate')) {
-            $queryBuilder->andWhere('b.startDate >= :startDate')
-                         ->setParameter('startDate', $request->query->get('startDate'));
-        }
-
-        if ($request->query->get('endDate')) {
-            $queryBuilder->andWhere('b.endDate <= :endDate')
-                         ->setParameter('endDate', $request->query->get('endDate'));
-        }
-
-        $pagination = $paginator->paginate(
-            $queryBuilder->getQuery(),
-            $request->query->getInt('page', 1),
-            $request->query->getInt('itemsPerPage', 10)
-        );
-
-        return $this->render('booking/index.html.twig', [
-            'bookings' => $pagination,
-        ]);
-    }
-
-    #[Route('/new', name: 'app_booking_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager): Response
-    {
         $booking = new Booking();
-        $form = $this->createForm(BookingType::class, $booking);
-        $form->handleRequest($request);
+        $booking->setClient($client);
+        $booking->setRoom($room);
+        $booking->setStartDate(new \DateTime($data['startDate']));
+        $booking->setEndDate(new \DateTime($data['endDate']));
 
-        if ($form->isSubmitted() && $form->isValid()) {
-            $entityManager->persist($booking);
-            $entityManager->flush();
+        $em->persist($booking);
+        $em->flush();
 
-            return $this->redirectToRoute('app_booking_index');
-        }
-
-        return $this->render('booking/new.html.twig', [
-            'booking' => $booking,
-            'form' => $form,
-        ]);
+        return new JsonResponse(['message' => 'Booking created successfully'], 201);
     }
 
-    #[Route('/{id}', name: 'app_booking_show', methods: ['GET'])]
-    public function show(Booking $booking): Response
+    #[Route('', name: 'api_booking_list', methods: ['GET'])]
+    public function list(BookingRepository $bookingRepo): JsonResponse
     {
-        return $this->render('booking/show.html.twig', [
-            'booking' => $booking,
-        ]);
-    }
+        $bookings = $bookingRepo->findAll();
+        $data = [];
 
-    #[Route('/{id}/edit', name: 'app_booking_edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, Booking $booking, EntityManagerInterface $entityManager): Response
-    {
-        $form = $this->createForm(BookingType::class, $booking);
-        $form->handleRequest($request);
-
-        if ($form->isSubmitted() && $form->isValid()) {
-            $entityManager->flush();
-
-            return $this->redirectToRoute('app_booking_index');
+        foreach ($bookings as $booking) {
+            $data[] = [
+                'id' => $booking->getId(),
+                'client' => $booking->getClient()->getName(),
+                'room' => $booking->getRoom()->getNumber(),
+                'startDate' => $booking->getStartDate()->format('Y-m-d'),
+                'endDate' => $booking->getEndDate()->format('Y-m-d'),
+            ];
         }
 
-        return $this->render('booking/edit.html.twig', [
-            'booking' => $booking,
-            'form' => $form,
-        ]);
+        return new JsonResponse($data);
     }
 
-    #[Route('/{id}', name: 'app_booking_delete', methods: ['POST'])]
-    public function delete(Request $request, Booking $booking, EntityManagerInterface $entityManager): Response
-    {
-        if ($this->isCsrfTokenValid('delete'.$booking->getId(), $request->request->get('_token'))) {
-            $entityManager->remove($booking);
-            $entityManager->flush();
+    #[Route('/{id}', name: 'api_booking_update', methods: ['PUT'])]
+    public function update(
+        int $id,
+        Request $request,
+        BookingRepository $bookingRepo,
+        ClientRepository $clientRepo,
+        RoomRepository $roomRepo,
+        EntityManagerInterface $em
+    ): JsonResponse {
+        $booking = $bookingRepo->find($id);
+        if (!$booking) {
+            return new JsonResponse(['error' => 'Booking not found'], 404);
         }
 
-        return $this->redirectToRoute('app_booking_index');
+        $data = json_decode($request->getContent(), true);
+
+        if (isset($data['client_id'])) {
+            $client = $clientRepo->find($data['client_id']);
+            if ($client) {
+                $booking->setClient($client);
+            }
+        }
+
+        if (isset($data['room_id'])) {
+            $room = $roomRepo->find($data['room_id']);
+            if ($room) {
+                $booking->setRoom($room);
+            }
+        }
+
+        if (isset($data['startDate'])) {
+            $booking->setStartDate(new \DateTime($data['startDate']));
+        }
+
+        if (isset($data['endDate'])) {
+            $booking->setEndDate(new \DateTime($data['endDate']));
+        }
+
+        $em->flush();
+
+        return new JsonResponse(['message' => 'Booking updated successfully']);
+    }
+
+    #[Route('/{id}', name: 'api_booking_delete', methods: ['DELETE'])]
+    public function delete(int $id, BookingRepository $bookingRepo, EntityManagerInterface $em): JsonResponse
+    {
+        $booking = $bookingRepo->find($id);
+        if (!$booking) {
+            return new JsonResponse(['error' => 'Booking not found'], 404);
+        }
+
+        $em->remove($booking);
+        $em->flush();
+
+        return new JsonResponse(['message' => 'Booking deleted successfully']);
     }
 }

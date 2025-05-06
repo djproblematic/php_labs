@@ -3,105 +3,116 @@
 namespace App\Controller;
 
 use App\Entity\Client;
-use App\Form\ClientType;
 use App\Repository\ClientRepository;
 use Doctrine\ORM\EntityManagerInterface;
-use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
-#[Route('/client')]
-final class ClientController extends AbstractController{
-    #[Route(name: 'app_client_index', methods: ['GET'])]
+#[Route('/api/client')]
+final class ClientController extends AbstractController
+{
+    #[Route(name: 'api_client_index', methods: ['GET'])]
     public function index(
+        ClientRepository $clientRepository,
+        SerializerInterface $serializer
+    ): JsonResponse {
+        $clients = $clientRepository->findAll();
+
+        return new JsonResponse(
+            $serializer->serialize($clients, 'json', ['groups' => 'client:read']),
+            JsonResponse::HTTP_OK,
+            [],
+            true
+        );
+    }
+
+    #[Route('/{id}', name: 'api_client_show', methods: ['GET'])]
+    public function show(int $id, ClientRepository $clientRepository, SerializerInterface $serializer): JsonResponse
+    {
+        $client = $clientRepository->find($id);
+        if (!$client) {
+            return new JsonResponse(['error' => 'Client not found'], JsonResponse::HTTP_NOT_FOUND);
+        }
+
+        return new JsonResponse(
+            $serializer->serialize($client, 'json', ['groups' => 'client:read']),
+            JsonResponse::HTTP_OK,
+            [],
+            true
+        );
+    }
+
+    #[Route('/new', name: 'api_client_new', methods: ['POST'])]
+    public function new(
+        Request $request,
+        EntityManagerInterface $entityManager,
+        SerializerInterface $serializer
+    ): JsonResponse {
+        $data = json_decode($request->getContent(), true);
+
+        $client = new Client();
+        $client->setName($data['name']);
+        $client->setEmail($data['email']);
+        $client->setPhone($data['phone']);
+
+        $entityManager->persist($client);
+        $entityManager->flush();
+
+        return new JsonResponse(
+            $serializer->serialize($client, 'json', ['groups' => 'client:read']),
+            JsonResponse::HTTP_CREATED,
+            [],
+            true
+        );
+    }
+
+    #[Route('/{id}/edit', name: 'api_client_edit', methods: ['PUT'])]
+    public function edit(
+        int $id,
         Request $request,
         ClientRepository $clientRepository,
-        PaginatorInterface $paginator
-    ): Response {
-        $queryBuilder = $clientRepository->createQueryBuilder('c');
-
-        if ($request->query->get('name')) {
-            $queryBuilder->andWhere('c.name LIKE :name')
-                         ->setParameter('name', '%' . $request->query->get('name') . '%');
+        EntityManagerInterface $entityManager,
+        SerializerInterface $serializer
+    ): JsonResponse {
+        $client = $clientRepository->find($id);
+        if (!$client) {
+            return new JsonResponse(['error' => 'Client not found'], JsonResponse::HTTP_NOT_FOUND);
         }
 
-        if ($request->query->get('email')) {
-            $queryBuilder->andWhere('c.email LIKE :email')
-                         ->setParameter('email', '%' . $request->query->get('email') . '%');
-        }
+        $data = json_decode($request->getContent(), true);
+        $client->setName($data['name'] ?? $client->getName());
+        $client->setEmail($data['email'] ?? $client->getEmail());
+        $client->setPhone($data['phone'] ?? $client->getPhone());
 
-        if ($request->query->get('phone')) {
-            $queryBuilder->andWhere('c.phone LIKE :phone')
-                         ->setParameter('phone', '%' . $request->query->get('phone') . '%');
-        }
+        $entityManager->flush();
 
-        $pagination = $paginator->paginate(
-            $queryBuilder,
-            $request->query->getInt('page', 1),
-            $request->query->getInt('itemsPerPage', 10)
+        return new JsonResponse(
+            $serializer->serialize($client, 'json', ['groups' => 'client:read']),
+            JsonResponse::HTTP_OK,
+            [],
+            true
         );
-
-        return $this->render('client/index.html.twig', [
-            'clients' => $pagination,
-        ]);
     }
 
-    #[Route('/new', name: 'app_client_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    #[Route('/{id}', name: 'api_client_delete', methods: ['DELETE'])]
+    public function delete(int $id, ClientRepository $clientRepository, EntityManagerInterface $entityManager): JsonResponse
     {
-        $client = new Client();
-        $form = $this->createForm(ClientType::class, $client);
-        $form->handleRequest($request);
-
-        if ($form->isSubmitted() && $form->isValid()) {
-            $entityManager->persist($client);
-            $entityManager->flush();
-
-            return $this->redirectToRoute('app_client_index', [], Response::HTTP_SEE_OTHER);
+        $client = $clientRepository->find($id);
+        if (!$client) {
+            return new JsonResponse(['error' => 'Client not found'], JsonResponse::HTTP_NOT_FOUND);
         }
 
-        return $this->render('client/new.html.twig', [
-            'client' => $client,
-            'form' => $form,
-        ]);
-    }
-
-    #[Route('/{id}', name: 'app_client_show', methods: ['GET'])]
-    public function show(Client $client): Response
-    {
-        return $this->render('client/show.html.twig', [
-            'client' => $client,
-        ]);
-    }
-
-    #[Route('/{id}/edit', name: 'app_client_edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, Client $client, EntityManagerInterface $entityManager): Response
-    {
-        $form = $this->createForm(ClientType::class, $client);
-        $form->handleRequest($request);
-
-        if ($form->isSubmitted() && $form->isValid()) {
-            $entityManager->flush();
-
-            return $this->redirectToRoute('app_client_index', [], Response::HTTP_SEE_OTHER);
+        if ($this->getUser()->getId() !== $client->getId()) {
+            throw new AccessDeniedException('You do not have permission to delete this client.');
         }
 
-        return $this->render('client/edit.html.twig', [
-            'client' => $client,
-            'form' => $form,
-        ]);
-    }
+        $entityManager->remove($client);
+        $entityManager->flush();
 
-    #[Route('/{id}', name: 'app_client_delete', methods: ['POST'])]
-    public function delete(Request $request, Client $client, EntityManagerInterface $entityManager): Response
-    {
-        if ($this->isCsrfTokenValid('delete'.$client->getId(), $request->getPayload()->getString('_token'))) {
-            $entityManager->remove($client);
-            $entityManager->flush();
-        }
-
-        return $this->redirectToRoute('app_client_index', [], Response::HTTP_SEE_OTHER);
+        return new JsonResponse(['message' => 'Client deleted successfully.'], JsonResponse::HTTP_NO_CONTENT);
     }
 }
